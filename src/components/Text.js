@@ -1,8 +1,9 @@
 import React from "react";
 import styled from "styled-components";
 
-const Text = ({ children }) => {
+const Text = ({ secondary, children }) => {
   const StyledText = styled.p`
+    color: ${secondary ? "#494949" : "#000"};
     font-size: 1.5rem;
     font-family: Arial ;
     width: 97%;

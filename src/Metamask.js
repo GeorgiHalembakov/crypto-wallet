@@ -21,6 +21,7 @@ const Metamask = () => {
   const [defaultAccount, setDefaultAccount] = useState(null);
   const [userBalance, setUserBalance] = useState(null);
   const [userNetworkId, setUserNetworkId] = useState(null);
+  const [showCopyMsg, setShowCopyMsg] = useState(false);
   const { activate, deactivate, account } = useWeb3React();
 
   const MMSDK = new MetaMaskSDK();
@@ -94,27 +95,50 @@ const Metamask = () => {
     width: 100%;
     margin: 0.5rem;
     display: flex;
-    font-size: 1.5em;
+    font-size: 1.5rem;
     align-items: center;
-    justify-content: space-between;
+    justify-content: space-around;
     color: #4c2c92;
   `;
+
+  const ClickableArea = styled.div`
+    cursor: pointer;
+    :hover {
+      opacity: 0.8;
+    }
+  `;
+
+  const CopyMsg = styled.span`
+  margin: -1em 1em;
+  font-family: Arial;
+  padding: 0;
+  position: absolute;
+  cursor: pointer;
+  :hover {
+    opacity: 0.8;
+  }
+`;
+
+  const handleAddressClick = () => {
+    navigator.clipboard.writeText(defaultAccount);
+    setShowCopyMsg(true);
+    setTimeout(() => {
+      setShowCopyMsg(false);
+    }, 2000);
+  };
 
   return (
     <>
       <Header />
       <Container>
-        <StyledButton
-          onClick={!!defaultAccount ? disconnectWallet : connectWallet}
-        >
-          {!!defaultAccount ? "Disconnect" : "Connect Wallet"}
-        </StyledButton>
-
         <ColapsibleSection>
           <Card>
-            <Text $border>Address: {defaultAccount}</Text>
             <Text>Balance: ETH {userBalance}</Text>
-            <Text>Network Id: {userNetworkId}</Text>
+            <ClickableArea onClick={handleAddressClick}>
+              <Text secondary>Address: {defaultAccount}</Text>
+              {showCopyMsg && <CopyMsg>Copied to Clipboard!</CopyMsg>}
+            </ClickableArea>
+            <Text secondary>Network Id: {userNetworkId}</Text>
             {userNetworkId !== "1" && (
               <>
                 <WarningMessage>
@@ -136,6 +160,13 @@ const Metamask = () => {
           </Card>
           {errorMsg && <Text>{errorMsg}</Text>}
         </ColapsibleSection>
+
+        <StyledButton
+          secondary={!!defaultAccount}
+          onClick={!!defaultAccount ? disconnectWallet : connectWallet}
+        >
+          {!!defaultAccount ? "Disconnect" : "Connect Wallet"}
+        </StyledButton>
       </Container>
       <Footer />
     </>
