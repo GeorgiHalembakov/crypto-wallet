@@ -26,9 +26,6 @@ const Metamask = () => {
   const MMSDK = new MetaMaskSDK();
   const ethereum = MMSDK.getProvider();
 
-
-
-
   const changeAccount = (accountName) => {
     setDefaultAccount(accountName);
     getBalance(accountName);
