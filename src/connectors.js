@@ -1,6 +1,7 @@
 import { WalletLinkConnector } from "@web3-react/walletlink-connector";
 import { WalletConnectConnector } from "@web3-react/walletconnect-connector";
 import { InjectedConnector } from "@web3-react/injected-connector";
+import { Metamask} from "@web3-react/metamask"
 
 const injected = new InjectedConnector({
   supportedChainIds: [1, 3, 4, 5, 42],
