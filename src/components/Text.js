@@ -6,7 +6,7 @@ const Text = ({ secondary, children }) => {
     color: ${secondary ? "#494949" : "#000"};
     font-size: 1.5rem;
     font-family: Arial ;
-    width: 97%;
+    width: 100%;
     word-break: break-all;
     padding: 0 0.5em;
     font-weight: bold;

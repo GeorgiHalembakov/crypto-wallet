@@ -11,7 +11,7 @@ const StyledButton = ({ secondary, onClick, children }) => {
     font-size: 1.3em;
     font-family: Arial;
     padding: 0.4em 0.7em;
-    margin: 0.5em;
+    margin-top: 5px;
     max-width: fit-content;
     transition: 0.4s;
     z-index: 1;

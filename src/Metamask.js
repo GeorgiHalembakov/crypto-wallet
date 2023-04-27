@@ -1,18 +1,25 @@
 import React, { useState, useEffect } from "react";
 import MetaMaskSDK from "@metamask/sdk";
 import { ethers } from "ethers";
+import { StyledButton, Footer, Header } from "./components";
 import {
-  StyledButton,
+  ColapsibleContainer,
   Container,
-  Footer,
-  Header,
-  Text,
+  RowContainer,
   Card,
-} from "./components";
+  WarningMessage,
+  ClickableArea,
+  CopyMsg,
+  StyledText,
+  TextContainer,
+  TokenCard,
+  Loader,
+} from "./components/styles";
+
 import { useWeb3React } from "@web3-react/core";
-import styled from "styled-components";
 import warningIcon from "./icons/warning.png";
 import { connectors } from "./connectors";
+import axios from "axios";
 
 const hexToDecimal = (number) => Number(number).toString(16);
 
@@ -21,13 +28,24 @@ const Metamask = () => {
   const [defaultAccount, setDefaultAccount] = useState(null);
   const [userBalance, setUserBalance] = useState(null);
   const [userNetworkId, setUserNetworkId] = useState(null);
+  const [tokenBalances, setTokenBalance] = useState([]);
   const [showCopyMsg, setShowCopyMsg] = useState(false);
-  const { activate, deactivate, account } = useWeb3React();
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const { activate, account } = useWeb3React();
 
   const MMSDK = new MetaMaskSDK();
   const ethereum = MMSDK.getProvider();
 
+  useEffect(() => {
+    if (account) {
+      setDefaultAccount(account);
+      getBalance(account);
+    }
+  }, [account]);
+
   const changeAccount = (accountName) => {
+    setIsExpanded(true);
     setDefaultAccount(accountName);
     getBalance(accountName);
     setErrorMsg(null);
@@ -44,19 +62,21 @@ const Metamask = () => {
       });
   };
 
-  // useEffect(() => {
-  //   setDefaultAccount(account);
-  //   getBalance(account);
-  // },[account]);
-
-  const connectWallet = () => {
+  const connectWallet = async () => {
     if (ethereum) {
-      ethereum.request({ method: "eth_requestAccounts" }).then((result) => {
-        changeAccount([result[0]]);
-      });
-      ethereum.request({ method: "eth_chainId" }).then((result) => {
-        setUserNetworkId(hexToDecimal(result));
-      });
+      try {
+        ethereum
+          .request({ method: "eth_requestAccounts" })
+          .then((result) => {
+            changeAccount(result[0]);
+          });
+
+        ethereum.request({ method: "eth_chainId" }).then((result) => {
+          setUserNetworkId(hexToDecimal(result));
+        });
+      } catch (error) {
+        console.error(error);
+      }
     } else {
       setErrorMsg("Install Metamask please");
     }
@@ -74,6 +94,7 @@ const Metamask = () => {
   };
 
   const disconnectWallet = () => {
+    setIsExpanded(false);
     setErrorMsg(null);
     setDefaultAccount(null);
   };
@@ -82,42 +103,6 @@ const Metamask = () => {
   ethereum.on("chainChanged", (chainId) =>
     setUserNetworkId(hexToDecimal(chainId))
   );
-  ethereum.on("disconnect", disconnectWallet);
-
-  const ColapsibleSection = styled.div`
-    max-height: ${!!defaultAccount ? "fit-content" : 0};
-    opacity: ${!!defaultAccount ? 1 : 0};
-    transition: all 1s linear;
-    padding: 0.5em;
-  `;
-
-  const WarningMessage = styled.div`
-    width: 100%;
-    margin: 0.5rem;
-    display: flex;
-    font-size: 1.5rem;
-    align-items: center;
-    justify-content: space-around;
-    color: #4c2c92;
-  `;
-
-  const ClickableArea = styled.div`
-    cursor: pointer;
-    :hover {
-      opacity: 0.8;
-    }
-  `;
-
-  const CopyMsg = styled.span`
-  margin: -1em 1em;
-  font-family: Arial;
-  padding: 0;
-  position: absolute;
-  cursor: pointer;
-  :hover {
-    opacity: 0.8;
-  }
-`;
 
   const handleAddressClick = () => {
     navigator.clipboard.writeText(defaultAccount);
@@ -127,18 +112,49 @@ const Metamask = () => {
     }, 2000);
   };
 
+  const getWalletBalance = async () => {
+    //  addressWithFewTokens on eth chain
+    // const address = "0x5AE5041a09711AB926734734Dc8aF07Fe31A3BB5";
+    setIsLoading(true);
+    try {
+      await axios
+        .get("http://localhost:4000/balances", {
+          params: { address: defaultAccount },
+        })
+        .then((res) => {
+          setUserBalance(
+            (res.data.nativeBalance.balance / 10 ** 18).toFixed(2)
+          );
+          setTokenBalance(
+            res.data.tokenBalances.map((token) => ({
+              icon: token.thumbnail,
+              name: token.name,
+              symbol: token.symbol,
+              amount: (token.balance / 10 ** token.decimals).toFixed(2),
+            }))
+          );
+          setIsLoading(false);
+        });
+    } catch (error) {
+      setErrorMsg(error);
+      setIsLoading(false);
+    }
+  };
+
   return (
     <>
       <Header />
       <Container>
-        <ColapsibleSection>
+        <ColapsibleContainer isExpanded={isExpanded}>
           <Card>
-            <Text>Balance: ETH {userBalance}</Text>
+            {showCopyMsg && <CopyMsg>Copied to Clipboard!</CopyMsg>}
             <ClickableArea onClick={handleAddressClick}>
-              <Text secondary>Address: {defaultAccount}</Text>
-              {showCopyMsg && <CopyMsg>Copied to Clipboard!</CopyMsg>}
+              <StyledText>Address: {defaultAccount}</StyledText>
             </ClickableArea>
-            <Text secondary>Network Id: {userNetworkId}</Text>
+            <TextContainer>
+              <StyledText primary>Balance: ETH {userBalance}</StyledText>
+              <StyledText primary> Network Id: {userNetworkId}</StyledText>
+            </TextContainer>
             {userNetworkId !== "1" && (
               <>
                 <WarningMessage>
@@ -150,19 +166,42 @@ const Metamask = () => {
                 </StyledButton>
               </>
             )}
-            {/* <StyledButton
-              onClick={() => {
-                activate(connectors.coinbasewallet);
-              }}
-            >
-              Connect Coinbase Wallet
-            </StyledButton> */}
+            <RowContainer>
+              <StyledButton
+                onClick={() => {
+                  activate(connectors.coinbasewallet);
+                }}
+              >
+                Connect Coinbase Wallet
+              </StyledButton>
+              <StyledButton
+                onClick={() => {
+                  activate(connectors.walletconnect);
+                }}
+              >
+                WalletConnect
+              </StyledButton>
+              <StyledButton onClick={getWalletBalance}>GetBalance</StyledButton>
+            </RowContainer>
           </Card>
-          {errorMsg && <Text>{errorMsg}</Text>}
-        </ColapsibleSection>
-
+          {errorMsg && <StyledText>{errorMsg}</StyledText>}
+          {isLoading ? (
+            <Loader isLoading />
+          ) : (
+            <RowContainer>
+              {tokenBalances.length > 0 &&
+                tokenBalances.map((token) => (
+                  <TokenCard key={token.name}>
+                    <img src={token.icon} />
+                    <StyledText token>{token.symbol}</StyledText>
+                    <StyledText token>{token.amount}</StyledText>
+                  </TokenCard>
+                ))}
+            </RowContainer>
+          )}
+        </ColapsibleContainer>
         <StyledButton
-          secondary={!!defaultAccount}
+          primary={!!defaultAccount}
           onClick={!!defaultAccount ? disconnectWallet : connectWallet}
         >
           {!!defaultAccount ? "Disconnect" : "Connect Wallet"}
